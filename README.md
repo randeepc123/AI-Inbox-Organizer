@@ -1,79 +1,36 @@
-# 📩 Inbox AI
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
-AI-powered email inbox cleaner built with Next.js and FastAPI. Paste in your emails and get instant AI analysis — each message is categorized as Urgent, Important, Low Priority, or Spam, with a summary, recommended action, and suggested reply. Powered by Groq's LLaMA 3.1 API.
+## Getting Started
 
----
-
-## 🛠 Tech Stack
-
-- **Frontend:** Next.js (React)
-- **Backend:** FastAPI (Python)
-- **AI Model:** LLaMA 3.1 8B via Groq API
-
----
-
-## ⚙️ Setup Instructions
-
-### 1. Clone the repository
+First, run the development server:
 
 ```bash
-git clone https://github.com/your-username/inbox-ai.git
-cd inbox-ai
-```
-
-### 2. Set up the backend
-
-```bash
-cd backend
-pip install fastapi uvicorn groq python-dotenv
-```
-
-Create a `.env` file inside the `backend` folder:
-
-```
-GROQ_API_KEY=your_groq_api_key_here
-```
-
-Start the backend server:
-
-```bash
-uvicorn main:app --reload
-```
-
-The backend will run on `http://localhost:8000`.
-
-### 3. Set up the frontend
-
-In a separate terminal:
-
-```bash
-cd frontend
-npm install
 npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
 ```
 
-The frontend will run on `http://localhost:3000`.
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
----
+You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
 
-## 🔑 Getting a Groq API Key
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-1. Go to [https://console.groq.com](https://console.groq.com)
-2. Sign up or log in
-3. Navigate to **API Keys** and create a new key
-4. Paste it into your `.env` file as shown above
+## Learn More
 
----
+To learn more about Next.js, take a look at the following resources:
 
-## 🚀 Usage
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-1. Make sure both the backend and frontend are running
-2. Open `http://localhost:3000` in your browser
-3. Click **"Clean My Inbox"** to analyze the sample emails
-4. View AI-generated insights in the right panel
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
----
+## Deploy on Vercel
 
-## 🔒 Note
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-Never commit your `.env` file. It is already included in `.gitignore`.
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
