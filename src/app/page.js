@@ -60,13 +60,13 @@ const SAMPLE_EMAILS = [
   {
     id: 10,
     subject: "Security alert: New login detected",
-    body: "We detected a login from a new device. If this wasn’t you, reset your password immediately.",
+    body: "We detected a login from a new device. If this wasn't you, reset your password immediately.",
     sender: "security@bank.com"
   },
   {
     id: 11,
     subject: "Weekly newsletter",
-    body: "Here’s your weekly roundup of news and updates.",
+    body: "Here's your weekly roundup of news and updates.",
     sender: "newsletter@media.com"
   },
   {
@@ -90,7 +90,7 @@ const SAMPLE_EMAILS = [
   {
     id: 15,
     subject: "Party this weekend 🎉",
-    body: "We’re hosting a party Saturday night—let me know if you can make it!",
+    body: "We're hosting a party Saturday night—let me know if you can make it!",
     sender: "friend2@gmail.com"
   }
 ];
@@ -102,19 +102,17 @@ export default function Home() {
   const [customForms, setCustomForms] = useState([emptyForm()]);
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
-
   const [selectedId, setSelectedId] = useState(null);
+  const [highlightedEmailId, setHighlightedEmailId] = useState(null);
 
   const populateReplyForm = (replyText) => {
     if (mode === "custom") {
-      // If already in custom mode, add a new form with the reply
       setCustomForms([...customForms, {
         subject: "Re: " + (customForms[customForms.length-1]?.subject || "Response"),
         sender: "",
         body: replyText
       }]);
     } else {
-      // If in sample mode, switch to custom mode and add the reply
       setMode("custom");
       setCustomForms([{
         subject: "Reply",
@@ -122,7 +120,6 @@ export default function Home() {
         body: replyText
       }]);
     }
-    // Scroll to top to show the new form
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -161,7 +158,13 @@ export default function Home() {
       });
 
       const data = await res.json();
-      setResults(Array.isArray(data) ? data : data.results || []);
+      
+      // If the data is an array, ensure each item has an id
+      if (Array.isArray(data)) {
+        setResults(data);
+      } else {
+        setResults(data.results || []);
+      }
     } catch (err) {
       console.error(err);
     }
@@ -174,6 +177,36 @@ export default function Home() {
       if (grouped[r.category]) grouped[r.category].push(r);
     });
   }
+
+  // Improved function to find matching email ID
+  const getMatchingEmailId = (analysisResult) => {
+    if (mode !== "sample") return null;
+    
+    // Method 1: Try to match by the ID from the analysis result
+    if (analysisResult.id && SAMPLE_EMAILS.some(email => email.id === analysisResult.id)) {
+      return analysisResult.id;
+    }
+    
+    // Method 2: Match by subject (most reliable)
+    const emailBySubject = SAMPLE_EMAILS.find(email => 
+      email.subject.toLowerCase() === analysisResult.original_subject?.toLowerCase() ||
+      email.subject.toLowerCase() === analysisResult.summary?.toLowerCase().slice(0, 30) ||
+      analysisResult.summary?.toLowerCase().includes(email.subject.toLowerCase())
+    );
+    if (emailBySubject) return emailBySubject.id;
+    
+    // Method 3: Match by sender and keywords
+    if (analysisResult.summary) {
+      const emailBySender = SAMPLE_EMAILS.find(email => {
+        const summaryLower = analysisResult.summary.toLowerCase();
+        const subjectLower = email.subject.toLowerCase();
+        return summaryLower.includes(subjectLower) || subjectLower.includes(summaryLower.slice(0, 30));
+      });
+      if (emailBySender) return emailBySender.id;
+    }
+    
+    return null;
+  };
 
   return (
     <div className="flex h-screen p-6 gap-6 bg-gray-50">
@@ -212,17 +245,22 @@ export default function Home() {
         <div className="flex-1 overflow-y-auto p-4">
           {mode === "sample" ? (
             SAMPLE_EMAILS.map((email) => (
-              <div key={email.id} 
-                onClick = {() => setSelectedId(selectedId === email.id ? null : email.id)}
-                className={`border-b py-3 px-2 cursor-pointer transition-colors rounded-lg ${
-                  selectedId === email.id ? "bg-blue-50" : "hover:bg-gray-50"
+              <div 
+                key={email.id} 
+                onClick={() => setSelectedId(selectedId === email.id ? null : email.id)}
+                className={`border-b py-3 px-2 cursor-pointer transition-all duration-200 rounded-lg ${
+                  selectedId === email.id ? "bg-blue-50" : ""
+                } ${
+                  highlightedEmailId === email.id 
+                    ? "bg-yellow-100 border-l-4 border-yellow-500 shadow-md scale-[1.01]" 
+                    : "hover:bg-gray-50"
                 }`}
               >
                 <p className="font-semibold text-gray-800">{email.subject}</p>
                 <p className="text-sm text-gray-500">{email.sender}</p>
 
                 {selectedId === email.id && (
-                  <div className="mt-3 p-3 bg-white border rounded-lg text-sm text-gray-700 animate-in fade-in slide-in-from-top-1">
+                  <div className="mt-3 p-3 bg-white border rounded-lg text-sm text-gray-700">
                     {email.body}
                   </div>
                 )}
@@ -338,45 +376,59 @@ export default function Home() {
                   </div>
             
                   <div className="space-y-3">
-                    {items.map((r) => (
-                      <div key={r.id} className="p-4 rounded-xl shadow-sm bg-white border border-gray-100 border-l-4 hover:shadow-md transition-shadow" 
-                          style={{ borderLeftColor: category === "Urgent" ? "#ef4444" : category === "Important" ? "#eab308" : category === "Spam" ? "#fb923c" : "#9ca3af" }}>
+                    {items.map((r, idx) => {
+                      // Get matching email ID for highlighting
+                      const matchingEmailId = getMatchingEmailId(r);
+                      
+                      return (
+                        <div 
+                          key={r.id || idx} 
+                          className="p-4 rounded-xl shadow-sm bg-white border border-gray-100 border-l-4 hover:shadow-md transition-all duration-200 cursor-pointer"
+                          style={{ borderLeftColor: category === "Urgent" ? "#ef4444" : category === "Important" ? "#eab308" : category === "Spam" ? "#fb923c" : "#9ca3af" }}
+                          
+                          onMouseEnter={() => {
+                            if (matchingEmailId) {
+                              setHighlightedEmailId(matchingEmailId);
+                            }
+                          }}
+                          onMouseLeave={() => {
+                            setHighlightedEmailId(null);
+                          }}
+                        >
+                          <p className="text-sm font-bold text-gray-800 leading-tight mb-2">{r.summary}</p>
                   
-                        <p className="text-sm font-bold text-gray-800 leading-tight mb-2">{r.summary}</p>
-                  
-                        {/* Action and Suggested Reply Section */}
-                        <div className="space-y-2 pt-2 border-t border-gray-50">
-                          <div className="flex items-start gap-2">
-                            <span className="text-xs font-bold text-gray-400 uppercase w-16 mt-0.5">Action:</span>
-                            <p className="text-sm text-gray-700">{r.action}</p>
-                          </div>
-
-                          {r.suggested_reply && (
-                            <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
-    
-                              <div className="flex items-start gap-2">
-                                <span className="text-xs font-bold text-blue-400 uppercase w-16 mt-0.5">
-                                  Reply:
-                                </span>
-                                <p className="text-sm text-blue-700 italic">
-                                  "{r.suggested_reply}"
-                                </p>
-                              </div>
-
-                              {/* 👇 ADD BUTTON RIGHT HERE */}
-                              <div className="flex justify-end mt-2">
-                                <button
-                                  onClick={() => populateReplyForm(r.suggested_reply)}
-                                  className="text-xs bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-700 transition"
-                                >
-                                  ↩️ Reply
-                                </button>
-                              </div>
+                          {/* Action and Suggested Reply Section */}
+                          <div className="space-y-2 pt-2 border-t border-gray-50">
+                            <div className="flex items-start gap-2">
+                              <span className="text-xs font-bold text-gray-400 uppercase w-16 mt-0.5">Action:</span>
+                              <p className="text-sm text-gray-700">{r.action}</p>
                             </div>
-                          )}
+
+                            {r.suggested_reply && (
+                              <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
+                                <div className="flex items-start gap-2">
+                                  <span className="text-xs font-bold text-blue-400 uppercase w-16 mt-0.5">
+                                    Reply:
+                                  </span>
+                                  <p className="text-sm text-blue-700 italic">
+                                    "{r.suggested_reply}"
+                                  </p>
+                                </div>
+
+                                <div className="flex justify-end mt-2">
+                                  <button
+                                    onClick={() => populateReplyForm(r.suggested_reply)}
+                                    className="text-xs bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-700 transition"
+                                  >
+                                    ↩️ Reply
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               );
