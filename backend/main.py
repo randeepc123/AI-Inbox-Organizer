@@ -28,62 +28,31 @@ class Email(BaseModel):
     body: str
     sender: str
 
-# Improved prompt 
+# Improved prompt that preserves original IDs and subjects
 def build_prompt(emails):
     return f"""
 You are an AI email assistant. Analyze each email and provide a structured response.
 
+IMPORTANT: Preserve the original 'id' from the input email in your output.
+
 For EACH email return a JSON object with:
-- id (integer)
+- id (integer) - MUST match the original email's id
+- original_subject (string) - include the original email subject for reference
 - category: MUST be one of: "Urgent" | "Important" | "Low Priority" | "Spam"
 - urgency_score (integer 0-100)
 - importance_score (integer 0-100)
 - summary (string, 1 sentence)
 - action (string, what the user needs to do)
-- suggested_reply (string or null) - Generate a reply for emails that ask questions, request information, require confirmation, or need a response. For spam, newsletters, or purely informational emails, use null.
+- suggested_reply (string or null) - Generate a reply for emails that ask questions, request information, require confirmation, or need a response.
 
 Guidelines for suggested_reply:
 - Create helpful, context-aware replies for emails that need a response
 - For questions: answer appropriately
 - For requests: acknowledge and respond
-- For meeting invites: confirm availability or propose alternatives
-- For action items: confirm you'll take action
 - Keep replies concise (1-3 sentences)
-- Don't generate replies for spam, newsletters, automated alerts, or purely FYI emails
+- Don't generate replies for spam, newsletters, automated alerts
 
-Examples of when to generate a reply:
-- "Can you send the files?" -> Generate: "Thanks for following up. I'll send those files over right away."
-- "Are you free for lunch?" -> Generate: "Lunch sounds great! What time works best for you?"
-- "Can you review this?" -> Generate: "I'll review the document and get back to you by tonight."
-
-Examples of when to use null:
-- Newsletters or promotional emails
-- Security alerts
-- Payment reminders (action is to pay, not reply)
-- Calendar reminders
-- System notifications
-
-Return ONLY valid JSON array. No explanation. No markdown. Example format:
-[
-  {{
-    "id": 1,
-    "category": "Important",
-    "urgency_score": 75,
-    "importance_score": 80,
-    "summary": "Reminder for final interview tomorrow at 10 AM.",
-    "action": "Prepare for and attend the interview",
-    "suggested_reply": null
-  }},
-  {{
-    "id": 2,
-    "category": "Low Priority",
-    "urgency_score": 30,
-    "importance_score": 20,
-    "summary": "Friend asking about lunch tomorrow.",
-    "action": "Respond with availability",
-    "suggested_reply": "Lunch sounds great! I'm free around noon. Where would you like to meet?"
-  }}
-]
+Return ONLY valid JSON array. No explanation. No markdown.
 
 Emails to analyze:
 {json.dumps([e.dict() for e in emails], indent=2)}
@@ -98,7 +67,7 @@ def analyze_emails(emails: List[Email]):
     response = client.chat.completions.create(
     model="llama-3.1-8b-instant",
     messages=[
-        {"role": "system", "content": "You are an AI email assistant that returns only valid JSON arrays. Never include explanatory text or markdown formatting."},
+        {"role": "system", "content": "You are an AI email assistant that returns only valid JSON arrays. Always preserve the original email IDs. Never include explanatory text or markdown formatting."},
         {"role": "user", "content": prompt}
     ],
     temperature=0.3
