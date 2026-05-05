@@ -44,6 +44,54 @@ const SAMPLE_EMAILS = [
     subject: "Doctor appointment reminder",
     body: "This is a reminder for your appointment on Thursday at 3 PM.",
     sender: "reminders@healthclinic.com"
+  },
+  {
+    id: 8,
+    subject: "Can you review this?",
+    body: "Hey, can you take a look at the document I sent and give feedback by tonight?",
+    sender: "teammate@company.com"
+  },
+  {
+    id: 9,
+    subject: "Lunch tomorrow?",
+    body: "Are you free for lunch tomorrow around noon?",
+    sender: "friend@gmail.com"
+  },
+  {
+    id: 10,
+    subject: "Security alert: New login detected",
+    body: "We detected a login from a new device. If this wasn’t you, reset your password immediately.",
+    sender: "security@bank.com"
+  },
+  {
+    id: 11,
+    subject: "Weekly newsletter",
+    body: "Here’s your weekly roundup of news and updates.",
+    sender: "newsletter@media.com"
+  },
+  {
+    id: 12,
+    subject: "Action required: Submit timesheet",
+    body: "Please submit your timesheet by EOD today.",
+    sender: "hr@company.com"
+  },
+  {
+    id: 13,
+    subject: "Follow-up on our meeting",
+    body: "Great speaking earlier. Could you send over the files we discussed?",
+    sender: "client@business.com"
+  },
+  {
+    id: 14,
+    subject: "Flight check-in open",
+    body: "Your flight check-in is now open. Please confirm your seat selection.",
+    sender: "airline@travel.com"
+  },
+  {
+    id: 15,
+    subject: "Party this weekend 🎉",
+    body: "We’re hosting a party Saturday night—let me know if you can make it!",
+    sender: "friend2@gmail.com"
   }
 ];
 
@@ -54,6 +102,29 @@ export default function Home() {
   const [customForms, setCustomForms] = useState([emptyForm()]);
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  const [selectedId, setSelectedId] = useState(null);
+
+  const populateReplyForm = (replyText) => {
+    if (mode === "custom") {
+      // If already in custom mode, add a new form with the reply
+      setCustomForms([...customForms, {
+        subject: "Re: " + (customForms[customForms.length-1]?.subject || "Response"),
+        sender: "",
+        body: replyText
+      }]);
+    } else {
+      // If in sample mode, switch to custom mode and add the reply
+      setMode("custom");
+      setCustomForms([{
+        subject: "Reply",
+        sender: "",
+        body: replyText
+      }]);
+    }
+    // Scroll to top to show the new form
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const addForm = () => setCustomForms([...customForms, emptyForm()]);
 
@@ -141,9 +212,20 @@ export default function Home() {
         <div className="flex-1 overflow-y-auto p-4">
           {mode === "sample" ? (
             SAMPLE_EMAILS.map((email) => (
-              <div key={email.id} className="border-b py-3">
+              <div key={email.id} 
+                onClick = {() => setSelectedId(selectedId === email.id ? null : email.id)}
+                className={`border-b py-3 px-2 cursor-pointer transition-colors rounded-lg ${
+                  selectedId === email.id ? "bg-blue-50" : "hover:bg-gray-50"
+                }`}
+              >
                 <p className="font-semibold text-gray-800">{email.subject}</p>
                 <p className="text-sm text-gray-500">{email.sender}</p>
+
+                {selectedId === email.id && (
+                  <div className="mt-3 p-3 bg-white border rounded-lg text-sm text-gray-700 animate-in fade-in slide-in-from-top-1">
+                    {email.body}
+                  </div>
+                )}
               </div>
             ))
           ) : (
@@ -226,81 +308,79 @@ export default function Home() {
       </div>
 
       {/* RIGHT: AI Panel */}
-      <div className="w-1/2 bg-white border rounded-2xl p-4 shadow overflow-y-auto">
-        <h1 className="text-2xl font-bold mb-4 text-gray-800">🧠 AI Insights</h1>
+      <div className="w-1/2 bg-white border rounded-2xl p-6 shadow overflow-y-auto">
+        <h1 className="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-2">
+          <span>🧠</span> AI Insights
+        </h1>
 
         {!results && (
-          <p className="text-gray-500">Click "Analyze Inbox" to analyze emails.</p>
+          <div className="flex flex-col items-center justify-center h-64 text-gray-400 border-2 border-dashed rounded-xl">
+            <p>Click "Analyze Inbox" to process your emails.</p>
+          </div>
         )}
 
         {Array.isArray(results) && results.length > 0 && (
-          <div className="space-y-6">
+          <div className="space-y-8">
+            {Object.entries(grouped).map(([category, items]) => {
+              if (items.length === 0) return null;
 
-            {grouped["Urgent"].length > 0 && (
-              <div>
-                <h2 className="font-bold text-red-500 mb-2">🔴 Urgent</h2>
-                <div className="space-y-2">
-                  {grouped["Urgent"].map((r) => (
-                    <div key={r.id} className="p-4 rounded-xl shadow-sm bg-white border-l-4 border-red-500">
-                      <p className="text-sm font-semibold text-gray-800">{r.summary}</p>
-                      <p className="text-xs text-gray-500 mt-1">Action: {r.action}</p>
-                      {r.suggested_reply && (
-                        <p className="text-xs text-blue-500 mt-1 italic">Suggested reply: {r.suggested_reply}</p>
-                      )}
-                    </div>
-                  ))}
+              const colorMap = {
+                Urgent: "border-red-500 text-red-500 bg-red-50",
+                Important: "border-yellow-500 text-yellow-600 bg-yellow-50",
+                "Low Priority": "border-gray-400 text-gray-500 bg-gray-50",
+                Spam: "border-orange-400 text-orange-600 bg-orange-50"
+              };
+
+              return (
+                <div key={category}>
+                  <div className={`inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-3 ${colorMap[category]}`}>
+                    {category}
+                  </div>
+            
+                  <div className="space-y-3">
+                    {items.map((r) => (
+                      <div key={r.id} className="p-4 rounded-xl shadow-sm bg-white border border-gray-100 border-l-4 hover:shadow-md transition-shadow" 
+                          style={{ borderLeftColor: category === "Urgent" ? "#ef4444" : category === "Important" ? "#eab308" : category === "Spam" ? "#fb923c" : "#9ca3af" }}>
+                  
+                        <p className="text-sm font-bold text-gray-800 leading-tight mb-2">{r.summary}</p>
+                  
+                        {/* Action and Suggested Reply Section */}
+                        <div className="space-y-2 pt-2 border-t border-gray-50">
+                          <div className="flex items-start gap-2">
+                            <span className="text-xs font-bold text-gray-400 uppercase w-16 mt-0.5">Action:</span>
+                            <p className="text-sm text-gray-700">{r.action}</p>
+                          </div>
+
+                          {r.suggested_reply && (
+                            <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
+    
+                              <div className="flex items-start gap-2">
+                                <span className="text-xs font-bold text-blue-400 uppercase w-16 mt-0.5">
+                                  Reply:
+                                </span>
+                                <p className="text-sm text-blue-700 italic">
+                                  "{r.suggested_reply}"
+                                </p>
+                              </div>
+
+                              {/* 👇 ADD BUTTON RIGHT HERE */}
+                              <div className="flex justify-end mt-2">
+                                <button
+                                  onClick={() => populateReplyForm(r.suggested_reply)}
+                                  className="text-xs bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-700 transition"
+                                >
+                                  ↩️ Reply
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
-
-            {grouped["Important"].length > 0 && (
-              <div>
-                <h2 className="font-bold text-yellow-500 mb-2">🟡 Important</h2>
-                <div className="space-y-2">
-                  {grouped["Important"].map((r) => (
-                    <div key={r.id} className="p-4 rounded-xl shadow-sm bg-white border-l-4 border-yellow-500">
-                      <p className="text-sm font-semibold text-gray-800">{r.summary}</p>
-                      <p className="text-xs text-gray-500 mt-1">Action: {r.action}</p>
-                      {r.suggested_reply && (
-                        <p className="text-xs text-blue-500 mt-1 italic">Suggested reply: {r.suggested_reply}</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {grouped["Low Priority"].length > 0 && (
-              <div>
-                <h2 className="font-bold text-gray-400 mb-2">⚪ Low Priority</h2>
-                <div className="space-y-2">
-                  {grouped["Low Priority"].map((r) => (
-                    <div key={r.id} className="p-4 rounded-xl shadow-sm bg-white border-l-4 border-gray-400">
-                      <p className="text-sm font-semibold text-gray-800">{r.summary}</p>
-                      <p className="text-xs text-gray-500 mt-1">Action: {r.action}</p>
-                      {r.suggested_reply && (
-                        <p className="text-xs text-blue-500 mt-1 italic">Suggested reply: {r.suggested_reply}</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {grouped["Spam"].length > 0 && (
-              <div>
-                <h2 className="font-bold text-orange-400 mb-2">🚫 Spam</h2>
-                <div className="space-y-2">
-                  {grouped["Spam"].map((r) => (
-                    <div key={r.id} className="p-4 rounded-xl shadow-sm bg-white border-l-4 border-orange-400">
-                      <p className="text-sm font-semibold text-gray-800">{r.summary}</p>
-                      <p className="text-xs text-gray-500 mt-1">Action: {r.action}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
+              );
+            })}
           </div>
         )}
       </div>
